@@ -1,7 +1,5 @@
 module tmpl
 
-import os
-
 fn test_main() {
 	mut context := map[string]Any
 	
@@ -20,7 +18,9 @@ numbers: @numbers
 
 @for number in numbers
   @number
-@end'
+@end
+
+@include READMEe.md'
 
 	b := template_string(a, context) or {
 		panic(err)
