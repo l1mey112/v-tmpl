@@ -1,3 +1,7 @@
+module tmpl
+
+import os
+
 fn test_main() {
 	mut context := map[string]Any
 	
@@ -8,17 +12,21 @@ fn test_main() {
 	}
 
 	a := 
-'name: @_name
+'name: @name
 
-age: @_age
+age: @age
 
-numbers: @_numbers
+numbers: @numbers
 
 @for number in numbers
   @number
 @end'
 
-	template_string(a, context) or {
+	b := template_string(a, context) or {
 		panic(err)
 	}
+
+	assert b.split_into_lines()[0] == 'name: Peter'
+	assert b.split_into_lines()[2] == 'age: 25'
+	assert b.split_into_lines()[4] == 'numbers: [1, 2, 3]'
 }

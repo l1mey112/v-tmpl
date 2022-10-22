@@ -47,26 +47,10 @@ pub fn error_string(err string, filename string, loc Loc) string {
 				err
 }
 
-pub fn any_to_str(v Any) string {
-	match v {
-		bool, f64, int, map[string]Any, string {
-			return v.str()
-		}
-		[]Any {
-			mut a := strings.new_builder(20)
-			a.write_u8(`[`)
-			for idx, vv in v {
-				a.write_string(any_to_str(vv))
-				if idx != v.len - 1 {
-					a.write_u8(`,`)
-					a.write_u8(` `)
-				}
-			}
-			a.write_u8(`]`)
-			return a.str()
-		}
-	}
-	panic('unreachable')
+fn (v Any) str() string {
+    match v {
+        bool, f64, int, string, []Any, map[string]Any { return v.str() }
+    }
 }
 
 fn format_line(line string, mut builder strings.Builder, context &map[string]Any) ! {
@@ -79,7 +63,7 @@ fn format_line(line string, mut builder strings.Builder, context &map[string]Any
 			v := get_value(l[1..], context) or {
 				return error('')
 			}
-			builder.write_string('${any_to_str(v)}')
+			builder.write_string('${v}')
 		} else {
 			builder.write_string('$l')
 		}
@@ -89,21 +73,21 @@ fn format_line(line string, mut builder strings.Builder, context &map[string]Any
 	}
 }
 
+pub fn template_string(template_string string, context map[string]Any) !string {
+	return execute_template(template_string, '_', context)!
+}
+
 pub fn template_file(template_file string, out_file string, context map[string]Any) ! {
 	fstring := os.read_file(template_file)!
-	ostring := template_string(fstring, template_file, context)!
+	ostring := execute_template(fstring, template_file, context)!
 	os.write_file(out_file, ostring)!
 }
 
-pub fn template_string(template_string string, template_file string, _context map[string]Any) !string {
+pub fn execute_template(template_string string, template_file string, _context map[string]Any) !string {
 	mut context := _context.clone()
-	context_r := &context
 
 	lines := template_string.split_into_lines()
 	mut f := strings.new_builder(template_string.len)
-	defer {
-		unsafe { f.free() }
-	}
 
 	mut tmpl_context := TemplateNode(TemplateNone{})
 	mut line_builder := strings.new_builder(80)
@@ -118,13 +102,6 @@ pub fn template_string(template_string string, template_file string, _context ma
 		}
 		tmpl_error := fn [template_file, loc] (err string) string {
 			return error_string(err, template_file, loc)
-		}
-		tmpl_format_line := fn [mut f, mut line_builder, context_r, tmpl_error] (l string) ! {
-			format_line(l, mut line_builder, context_r) or {
-				return error(tmpl_error('value not found in template context'))
-			}
-
-			f.writeln(line_builder.str())
 		}
 
 		/* TODO: 
@@ -190,7 +167,10 @@ pub fn template_string(template_string string, template_file string, _context ma
 					TemplateIf {
 						if tmpl_context.value as bool {
 							for i := tmpl_context.start + 1; i < idx; i++ {
-								tmpl_format_line(lines[i])!
+								format_line(lines[i], mut line_builder, &context) or {
+									return error(tmpl_error('value not found in template context'))
+								}
+								f.writeln(line_builder.str())
 							}
 						}
 					}
@@ -204,7 +184,10 @@ pub fn template_string(template_string string, template_file string, _context ma
 						for value in tmpl_context.inner_array {
 							context[tmpl_context.inner_name] = value
 							for i := tmpl_context.start + 1; i < idx; i++ {
-								tmpl_format_line(lines[i])!
+								format_line(lines[i], mut line_builder, &context) or {
+									return error(tmpl_error('value not found in template context'))
+								}
+								f.writeln(line_builder.str())
 							}
 						}
 						if is_shadowed {
@@ -227,7 +210,10 @@ pub fn template_string(template_string string, template_file string, _context ma
 				}
 			}
 		}
-		tmpl_format_line(l)!
+		format_line(l, mut line_builder, &context) or {
+			return error(tmpl_error('value not found in template context'))
+		}
+		f.writeln(line_builder.str())
 	}
 
 	if tmpl_context !is TemplateNone {
