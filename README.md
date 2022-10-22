@@ -17,7 +17,7 @@ fn main() {
 	context = {
 		'name' : 'Peter'
 		'age' : 25
-		'numbers' : [Any(1), 2, 3]
+		'numbers' : [tmpl.Any(1), 2, 3]
 	}
 
 	a := 
