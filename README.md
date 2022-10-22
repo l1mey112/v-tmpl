@@ -4,6 +4,8 @@ An implementation of the compile time template system for generic use. Striving 
 
 This is highly experimental, most features are not properly implemented and there are some edge cases. Be warned.
 
+PRs welcome!
+
 # Basic Usage
 
 ```v
