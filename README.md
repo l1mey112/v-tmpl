@@ -29,7 +29,9 @@ numbers: @numbers
 
 @for number in numbers
   @number
-@end"
+@end
+
+@include README.md"
 
 	b := tmpl.template_string(a, context) or {
 		panic(err)

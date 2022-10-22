@@ -20,7 +20,7 @@ numbers: @numbers
   @number
 @end
 
-@include READMEe.md'
+@include README.md'
 
 	b := template_string(a, context) or {
 		panic(err)
